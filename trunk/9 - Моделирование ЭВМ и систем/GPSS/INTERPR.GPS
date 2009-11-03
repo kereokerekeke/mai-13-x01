@@ -1,0 +1,24 @@
+         SIMULATE
+         GENERATE   ,,,2,1
+*Ввод в модель транзактов 1 и 2
+         ADVANCE    0.0002
+*Задержка тр. 1 и 2
+         SEIZE      TEST
+*Занятие устройства TEST
+         ADVANCE    0.0002
+*Задержка транзакта
+         RELEASE    TEST
+*Освобождение устройства TEST
+         TERMINATE  1
+************СЕГМЕНТ 2**************
+         GENERATE   ,,0.0004,1,3
+*Ввод в модельтранзакта 3
+         SEIZE      TEST
+*Занятие устройства TEST
+         ADVANCE    0.0002
+*Задержка транзакта 3
+         RELEASE    TEST
+*Освобождение устройства TEST
+         TERMINATE  1
+         START      3
+         END

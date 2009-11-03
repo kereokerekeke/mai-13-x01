@@ -1,0 +1,16 @@
+       SIMULATE
+TIME   TABLE     IA,0,5,8
+       GENERATE  RVNORM(1,15,5),,,201
+       TABULATE  TIME
+       TERMINATE 1
+       START     201
+
+       REPORT
+       EJECT
+       GRAPH     TF,TIME,,*
+       ORIGIN    15,10
+       X         ,5,2,5,1,6
+       Y         0,15,6,2
+       ENDGRAPH
+       OUTPUT
+       END

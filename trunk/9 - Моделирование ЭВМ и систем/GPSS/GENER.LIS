@@ -1,0 +1,135 @@
+    STUDENT GPSS/H RELEASE 3.0c-C10 (EP195)      7 Mar 2003   12:39:49     FILE: GENER.GPS
+
+    LINE# STMT#  IF DO  BLOCK#  *LOC	OPERATION	A,B,C,D,E,F,G	COMMENTS  
+ 
+        1     1                        SIMULATE
+        2     2                 TIME   TABLE     IA,0,5,8
+        3     3              1         GENERATE  RVNORM(1,15,5),,,201
+        4     4              2         TABULATE  TIME
+        5     5              3         TERMINATE 1
+        6     6                        START     201
+        7     7                  
+        8     8                        REPORT
+        9     9                        EJECT
+       10    10                        GRAPH     TF,TIME,,*
+       11    11                        ORIGIN    15,10
+       12    12                        X         ,5,2,5,1,6
+       13    13                        Y         0,15,6,2
+       14    14                        ENDGRAPH
+       15    15                        OUTPUT
+       16    16                        END
+
+ENTITY DICTIONARY (IN ASCENDING ORDER BY ENTITY NUMBER; "*" => VALUE CONFLICT.)
+
+           Tables: 1=TIME
+
+   Random Numbers: 1
+
+SYMBOL   VALUE   EQU DEFNS  CONTEXT      REFERENCES BY STATEMENT NUMBER
+ 
+TIME         1           2  Table            4    10
+ 
+1            1              Random Nmbr      3
+
+
+
+STORAGE REQUIREMENTS (BYTES)
+
+COMPILED CODE:      484
+COMPILED DATA:       40
+MISCELLANEOUS:        0
+ENTITIES:           424
+COMMON:           10000
+-----------------------
+TOTAL:            10948
+
+
+
+GPSS/H MODEL SIZE:
+
+CONTROL STATEMENTS     12
+BLOCKS                  3
+
+
+
+Simulation begins.
+
+         *
+         *
+      90 *
+         *                       *****
+      75 *                       *   *
+         *                *****  *   *
+      60 *                *   *  *   *
+         *                *   *  *   *
+      45 *                *   *  *   *
+         *                *   *  *   *
+      30 *                *   *  *   *
+         *         *****  *   *  *   *  *****
+      15 *         *   *  *   *  *   *  *   *
+         *  *****  *   *  *   *  *   *  *   *
+       0 *********************************************
+                5     10     15     20     25     30
+
+
+
+RELATIVE CLOCK: 3040.4552   ABSOLUTE CLOCK: 3040.4552
+
+
+
+BLOCK CURRENT     TOTAL  
+1                   201 
+2                   201 
+3                   201 
+
+
+
+TABLE     TIME
+
+ENTRIES IN TABLE   MEAN ARGUMENT   STANDARD DEVIATION   SUM OF ARGUMENTS
+        200.0000         15.1677               4.5937          3033.5429   NON-WEIGHTED
+
+       UPPER    OBSERVED     PERCENT  CUMULATIVE  CUMULATIVE    MULTIPLE   DEVIATION
+       LIMIT   FREQUENCY    OF TOTAL  PERCENTAGE   REMAINDER     OF MEAN   FROM MEAN
+        ...
+      5.0000      4.0000      2.0000        2.00       98.00      0.3296     -2.2134
+     10.0000     22.0000     11.0000       13.00       87.00      0.6593     -1.1250
+     15.0000     67.0000     33.5000       46.50       53.50      0.9889     -0.0365
+     20.0000     80.0000     40.0000       86.50       13.50      1.3186      1.0519
+     25.0000     24.0000     12.0000       98.50        1.50      1.6482      2.1404
+     30.0000      3.0000      1.5000      100.00        0.00      1.9779      3.2288
+
+
+
+  RANDOM    ANTITHETIC     INITIAL     CURRENT      SAMPLE   CHI-SQUARE
+  STREAM      VARIATES    POSITION    POSITION       COUNT   UNIFORMITY
+       1           OFF      100000      100404         404      0.89
+
+STATUS OF COMMON STORAGE
+
+    9856 BYTES AVAILABLE
+     144 IN USE
+     368 USED (MAX)
+
+Simulation terminated.  Absolute Clock: 3040.4552
+
+
+
+Total Block Executions: 603
+
+Blocks / second:        603000
+
+Microseconds / Block:   1.66
+
+
+
+Elapsed Time Used (SEC)
+ 
+PASS1:           0.05
+LOAD/CTRL:       0.17
+EXECUTION:       0.00
+---------------------
+TOTAL:           0.22
+
+GPSS/H IS A PROPRIETARY PRODUCT OF, AND IS USED UNDER A LICENSE GRANTED BY, THE WOLVERINE SOFTWARE CORPORATION,
+7617 LITTLE RIVER TURNPIKE, ANNANDALE, VIRGINIA 22003-2603, USA.

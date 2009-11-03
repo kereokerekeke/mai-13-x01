@@ -1,0 +1,113 @@
+    STUDENT GPSS/H RELEASE 3.0c-C10 (EP195)     12 Mar 2003   15:31:51     FILE: interpr.gps
+
+    LINE# STMT#  IF DO  BLOCK#  *LOC	OPERATION	A,B,C,D,E,F,G	COMMENTS  
+ 
+        1     1                          SIMULATE
+        2     2              1           GENERATE   ,,,2,1
+        3     3                 *Ввод в модель транзактов 1 и 2
+        4     4              2           ADVANCE    0.0002
+        5     5                 *Задержка тр. 1 и 2
+        6     6              3           SEIZE      TEST
+        7     7                 *Занятие устройства TEST
+        8     8              4           ADVANCE    0.0002
+        9     9                 *Задержка транзакта
+       10    10              5           RELEASE    TEST
+       11    11                 *Освобождение устройства TEST
+       12    12              6           TERMINATE  1
+       13    13                 ************СЕГМЕНТ 2**************
+       14    14              7           GENERATE   ,,0.0004,1,3
+       15    15                 *Ввод в модельтранзакта 3
+       16    16              8           SEIZE      TEST
+       17    17                 *Занятие устройства TEST
+       18    18              9           ADVANCE    0.0002
+       19    19                 *Задержка транзакта 3
+       20    20             10           RELEASE    TEST
+       21    21                 *Освобождение устройства TEST
+       22    22             11           TERMINATE  1
+       23    23                          START      3
+       24    24                          END
+
+ENTITY DICTIONARY (IN ASCENDING ORDER BY ENTITY NUMBER; "*" => VALUE CONFLICT.)
+
+       Facilities: 1=TEST
+
+SYMBOL   VALUE   EQU DEFNS  CONTEXT      REFERENCES BY STATEMENT NUMBER
+ 
+TEST         1              Facility         6    10    16    20
+
+
+
+STORAGE REQUIREMENTS (BYTES)
+
+COMPILED CODE:      224
+COMPILED DATA:       80
+MISCELLANEOUS:        0
+ENTITIES:           264
+COMMON:           10000
+-----------------------
+TOTAL:            10568
+
+
+
+GPSS/H MODEL SIZE:
+
+CONTROL STATEMENTS      3
+BLOCKS                 11
+
+
+
+Simulation begins.
+
+RELATIVE CLOCK: 0.0008   ABSOLUTE CLOCK: 0.0008
+
+
+
+BLOCK CURRENT     TOTAL  BLOCK CURRENT     TOTAL  
+1                     2  11                    1 
+2                     2 
+3                     2 
+4                     2 
+5                     2 
+6                     2 
+7                     1 
+8                     1 
+9                     1 
+10                    1 
+
+
+
+          --AVG-UTIL-DURING--                                                               
+FACILITY  TOTAL  AVAIL  UNAVL     ENTRIES    AVERAGE   CURRENT  PERCENT  SEIZING  PREEMPTING
+           TIME   TIME   TIME               TIME/XACT   STATUS   AVAIL     XACT      XACT   
+    TEST  0.750                         3       0.000    AVAIL                  
+
+
+
+STATUS OF COMMON STORAGE
+
+    9776 BYTES AVAILABLE
+     224 IN USE
+     560 USED (MAX)
+
+Simulation terminated.  Absolute Clock: 0.0008
+
+
+
+Total Block Executions: 17
+
+Blocks / second:        17000
+
+Microseconds / Block:  58.82
+
+
+
+Elapsed Time Used (SEC)
+ 
+PASS1:           0.05
+LOAD/CTRL:       0.17
+EXECUTION:       0.00
+---------------------
+TOTAL:           0.22
+
+GPSS/H IS A PROPRIETARY PRODUCT OF, AND IS USED UNDER A LICENSE GRANTED BY, THE WOLVERINE SOFTWARE CORPORATION,
+7617 LITTLE RIVER TURNPIKE, ANNANDALE, VIRGINIA 22003-2603, USA.
