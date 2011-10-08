@@ -1,0 +1,404 @@
+
+writeln " *******************************************************************";
+writeln " *      model' sektornoi KES pamati s priznakovim obmenom          *";
+writeln " *******************************************************************";
+
+{               rabota modeliruetsa na urovne blokov                          }
+
+{**************************** opisanie tipov *********************************}
+
+{ tipi ispol'zuemie p/p }
+
+var i,j,     { vspomogatel'naa peremennaa }
+    choice,  { nomer varianta }
+
+    { peremennie ispol'zuemie v programme modelirovania }
+
+    k,l,     { vspomogatel'naa peremennaa }
+    op_code, { kod operazii }
+    data,    { dannie }
+    replace, { nomer zamesaemogo segmenta }
+    s_no;    { nomer sektora, soderjasego neobhodimii segment }
+
+mem op[32][8];   { operativnaa pamat' 32 slova po 8 bit }
+
+mem bp[16][10];   { bufernaa pamat' 16 slov po 10 bit }
+
+mem ispadr[3][5];  { pamat' icpolnitel'nih adpecov, soderjit ispolnitel'nie
+                     adresa }
+
+mem inputs[3][8]; { cisla dla zapisi, soderjit cisla zapisivaemie v pamat' }
+
+mem coper[3][1]; { pamat' kodov operazii 1-ctenie, 0-zapis' }
+
+mem seg_present[2][2]; { registri nomerov prisutstvuysih segmentov }
+
+mem rep_seg[3][2];  { vitecnaemii segment,  soderjit nomera segmentov
+                      vitesnaemih iz BP pri zamesenii }
+
+struct iadr[5]      { adres aceiki OP 32 clova }
+       blok[3],     { nomer bloka 8 st. }
+       seg [2];     { nomer segmenta 4 st.}
+
+struct bpadr[4]     { adres aceiki BP 16 clov }
+       blok[3],     { nomer bloka 8st. }
+       sect[1];     { nomer sektora 2st. }
+
+struct buf_reg[10] { struktura slova bufernoi pamati,  v etu strukturu
+scitivaetsa  slovo  BP pri lyboi obrabotke,  cto pozvolaet razlicat' v
+nem biti prisutstvia, izmenenia i sobstvenno dannie }
+       data[8],     { dannie }
+       ch_bit[1],   { bit izmenenia }
+       pres_bit[1]; { bit nalicia }
+
+struct subiadr[5]   { permennaa ispol'zuetsa v podprogrammah }
+       blok[3],
+       seg [2];
+
+struct subbpadr[4]  { permennaa ispol'zuetsa v podprogrammah }
+       blok[3],
+       sect[1];
+
+struct subbuf_reg[10] { permennaa ispol'zuetsa v podprogrammah }
+       data[8],
+       ch_bit[1],
+       pres_bit[1];
+
+{**************************** nacalo programmi *******************************}
+
+gosub variant;     { zadanie nacal'nih znacenii vseh peremennih }
+for l:=0 to 2;
+ replace:=rep_seg[l]; { scitivanie dannih iz massivov v tekusie peremennie }
+ op_code:=coper[l];
+ iadr:=ispadr[l];
+ writeln "Ispolnitel'nii adres - ",$d2 iadr;
+ data:=inputs[l];
+ s_no:=255;            { nacal'noe zadanie vspomogatel'noi peremennoi }
+ { Poisk nalicia segmenta v BP }
+ if seg_present[0]=iadr.seg then s_no:=0;
+ if seg_present[1]=iadr.seg then s_no:=1;
+ if s_no<>255 then goto get_blok;      { Esli segment prisutstvuet v BP... }
+ { Esli segmenta net }
+ writeln "Segment ",$d2 iadr.seg," otsutstvuet v bufernoi pamati";
+ writeln "Vitesnenie segmenta ",$d2 replace;
+ if seg_present[0]=replace then s_no:=0;    { poisk vitesnaemogo segmenta }
+ if seg_present[1]=replace then s_no:=1;
+ for j:=0 to 7;                             { vitesnenie segmenta }
+  bpadr.sect:=s_no;                       { nahojdenie adresa }
+  bpadr.blok:=j;
+  buf_reg:=bp[bpadr];                     { scitivanie v bufernii registr }
+  if buf_reg.ch_bit=0 then goto dont_save; { esli blok ne menalsa ... }
+  { esli blok menalsa perezapis' ego v OP }
+  k:=iadr;
+  iadr.blok:=bpadr.blok;
+  iadr.seg:=seg_present[s_no];
+  op[iadr]:=buf_reg.data;
+  write "Perezapis' bloka ",$d2 iadr.blok;
+  writeln " segmenta ",$d2 iadr.seg," v OP";
+  iadr:=k;
+ dont_save:
+  buf_reg.ch_bit:=0;      { obnulenie bitov }
+  buf_reg.pres_bit:=0;
+  bp[bpadr]:=buf_reg;
+ next;
+ seg_present[s_no]:=iadr.seg;
+get_blok:
+ bpadr.blok:=iadr.blok;
+ bpadr.sect:=s_no;
+ buf_reg:=bp[bpadr];{ ctenie bloka iz BP v bufernii registr }
+ if buf_reg.pres_bit=1 then goto do_it; { esli blok prisutstvuet v BP ... }
+ { esli blok otsutstvuet v BP }
+ write "Blok ",$d2 iadr.blok;
+ writeln " segmenta ",$d2 iadr.seg," otsutstvuet v bufernoi pamati";
+ writeln "Ctenie bloka iz operativnoi pamati...";
+ buf_reg.data:=op[iadr];
+ buf_reg.pres_bit:=1;
+do_it: { vipolnenie operazii po kodu }
+ if op_code=1 then goto read_data; { esli 1 to ctenie ... }
+ { esli 0 to zapis' }
+ buf_reg.data:=data;
+ buf_reg.ch_bit:=1;
+ writeln "Zapisani dannie ",$d4 data;
+ goto end_job;
+read_data:
+ data:=buf_reg.data;
+ writeln "Procitani dannie ",$d4 data;
+end_job:
+ bp[bpadr]:=buf_reg; { zapis' iz registra v bufernuy pamat' }
+ pause;
+ gosub print_bp;   { pecat' soderjimogo BP }
+ pause;
+ gosub print_op;   { pecat' soderjimogo OP }
+ pause;
+next;
+end;
+
+{**************************** konez programmi ********************************}
+
+{**************************** podprogrammi ***********************************}
+
+{ p/p zadanie varianta ,ispol'zuet p/p first,second,third }
+
+variant:
+
+{ zadanie ishodnih dannih po variantam }
+
+read " Vvedite nomer varianta : ",choice;
+
+if choice<=5 then gosub first;
+if ((choice>5) and (choice<=10)) then gosub second;
+if choice>10 then gosub third;
+
+return; { variant }
+
+{ p/p pervii variant }
+
+first:
+
+{ prisvaivanie nacal'nih znacenii aceikam OP }
+
+for i:=0 to 31;
+    op[i]:=(choice+2)*2+i-2;
+next;
+
+{ prisvaivanie nacal'nih znacenii aceikam BP }
+
+for i:=0 to 15;
+   buf_reg.data:=(choice+2)*2+i-2;
+   buf_reg.ch_bit:=0;
+   buf_reg.pres_bit:=1;
+   bp[i]:=buf_reg;
+next;
+
+for i:=2 to 5;
+   buf_reg.data:=choice+i-2;
+   buf_reg.ch_bit:=0;
+   buf_reg.pres_bit:=0;
+   bp[i]:=buf_reg;
+next;
+
+{ naznacenie ispolnitel'nih adresov }
+
+ispadr[0]:=4;
+ispadr[1]:=29;
+ispadr[2]:=15;
+
+{ zadanie cicel dla zapisi }
+
+for i:=0 to 2;
+   inputs[i]:=i+8;
+next;
+
+{ KOPi }
+
+coper[0]:=0;
+coper[1]:=1;
+coper[2]:=0;
+
+{ nomera priutstvuysih segmentov }
+
+seg_present[0]:=0;
+seg_present[1]:=1;
+
+{ nomera zamesaemih segmentov }
+
+rep_seg[0]:=0;
+rep_seg[1]:=0;
+rep_seg[2]:=0;
+
+gosub print_bp;   { pecat' soderjimogo BP }
+pause;
+gosub print_op;   { pecat' soderjimogo OP }
+gosub print; { pecat' zapisivaemih cisel i zamesaemih segmentov }
+pause;
+
+return; { first }
+
+{ p/p vtoroi variant }
+
+second:
+
+{ prisvaivanie nacal'nih znacenii aceikam OP }
+
+for i:=0 to 31;
+    op[i]:=(choice+2)*2+i-8;
+next;
+
+{ prisvaivanie nacal'nih znacenii aceikam BP }
+
+for i:=0 to 15;
+   buf_reg.data:=(choice+2)*2+i;
+   buf_reg.ch_bit:=0;
+   buf_reg.pres_bit:=1;
+   bp[i]:=buf_reg;
+next;
+
+for i:=0 to 3;
+   buf_reg.data:=choice-4;
+   buf_reg.ch_bit:=0;
+   buf_reg.pres_bit:=0;
+   bp[i]:=buf_reg;
+next;
+
+{ naznacenie icpolnitel'nih adresov }
+
+ispadr[0]:=10;
+ispadr[1]:=30;
+ispadr[2]:=19;
+
+{ zadanie cicel dla zapisi }
+
+for i:=0 to 2;
+   inputs[i]:=i+12;
+next;
+
+{ KOPi }
+
+coper[0]:=1;
+coper[1]:=0;
+coper[2]:=1;
+
+{ nomera prisutstvuysih segmentov }
+
+seg_present[0]:=1;
+seg_present[1]:=2;
+
+{ nomera zamesaemih segmentov }
+
+rep_seg[0]:=0;
+rep_seg[1]:=1;
+rep_seg[2]:=0;
+
+gosub print_bp;   { pecat' soderjimogo BP }
+pause;
+gosub print_op;   { pecat' soderjimogo OP }
+gosub print; { pecat' zapisivaemih cisel i zamesaemih segmentov }
+pause;
+
+return; { second }
+
+{ p/p tretii variant }
+
+third:
+
+{ prisvaivanie nacal'nih znacenii aceikam OP }
+
+for i:=0 to 31;
+    op[i]:=(choice+2)/2+i+5;
+next;
+
+{ prisvaivanie nacal'nih znacenii aceikam BP }
+
+for i:=0 to 15;
+   buf_reg.data:=(choice+2)/2+i+21;
+   buf_reg.ch_bit:=0;
+   buf_reg.pres_bit:=1;
+   bp[i]:=buf_reg;
+next;
+
+for i:=4 to 7;
+   buf_reg.data:=choice-7;
+   buf_reg.ch_bit:=0;
+   buf_reg.pres_bit:=0;
+   bp[i]:=buf_reg;
+next;
+
+{ naznacenie ispolnitel'nih adresov }
+
+ispadr[0]:=21;
+ispadr[1]:=8;
+ispadr[2]:=24;
+
+{ zadanie cisel dla zapisi }
+
+for i:=0 to 2;
+   inputs[i]:=i+23;
+next;
+
+{ KOPi }
+
+coper[0]:=1;
+coper[1]:=1;
+coper[2]:=0;
+
+{ nomera prisutstvuysih segmentov }
+
+seg_present[0]:=2;
+seg_present[1]:=3;
+
+{ nomera zamesaemih segmentov }
+
+rep_seg[0]:=0;
+rep_seg[1]:=2;
+rep_seg[2]:=0;
+
+gosub print_bp;   { pecat' soderjimogo BP }
+pause;
+gosub print_op;   { pecat' soderjimogo OP }
+gosub print; { pecat' zapisivaemih cisel i zamesaemih segmentov }
+pause;
+
+return; { third }
+
+{ p/p pecati soderjimogo bufernoi pamati }
+
+print_bp:
+   writeln "Soderjimoe bufernoi pamati :";
+   writeln "       Cektor 0            Sektor 1";
+   writeln "Blok   Izm. Pris. Dannie   Izm. Pris. Dannie";
+   for i:=0 to 7;
+      write " ",$d2 i;
+      subbpadr.sect:=0;
+      subbpadr.blok:=i;
+      subbuf_reg:=bp[subbpadr];
+      gosub print_br;
+      subbpadr.sect:=1;
+      subbuf_reg:=bp[subbpadr];
+      gosub print_br;
+      writeln;
+   next;
+   writeln "Soderjimoe RNPS:";
+   writeln "--------------------------------";
+   writeln "!    sektor    !    segment    !";
+   writeln "--------------------------------";
+   writeln "!      0       !",$d7 seg_present[0],"        !";
+   writeln "!      1       !",$d7 seg_present[1],"        !";
+   writeln "--------------------------------";
+return; { print_bp }
+
+{ p/p pecati soderjimogo bufernogo registra }
+
+print_br:
+   write "     ",   $b1 subbuf_reg.ch_bit;
+   write "     ", $b1 subbuf_reg.pres_bit;
+   write "    ", $d4 subbuf_reg.data;
+return; { print_br }
+
+{ p/p pecati soderjimogo operativnoi pamati }
+
+print_op:
+   writeln "Soderjimoe operativnoi pamati:";
+   writeln "    Blok #      0   1   2   3   4   5   6   7";
+   for i:=0 to 3;
+      write " Cegment #",$d1 i,"  ";
+      subiadr.seg:=i;
+      for j:=0 to 7;
+         subiadr.blok:=j;
+         write $d4 op[subiadr];
+      next;
+      writeln;
+   next;
+return; { print_op }
+
+{ p/p pecati zapisivaemih cisel i zamesaemih segmentov }
+
+print:
+ writeln "------------------------------------";
+ writeln "! N obras. ! Cisla dla ! N vitesn. !";
+ writeln "!          ! zapisi    ! segmenta  !";
+ writeln "------------------------------------";
+ writeln "!     1    !",$d7 inputs[0],"    !",$d6 rep_seg[0],"     !";
+ writeln "!     2    !",$d7 inputs[1],"    !",$d6 rep_seg[1],"     !";
+ writeln "!     3    !",$d7 inputs[2],"    !",$d6 rep_seg[2],"     !";
+ writeln "------------------------------------";
+return; { print }

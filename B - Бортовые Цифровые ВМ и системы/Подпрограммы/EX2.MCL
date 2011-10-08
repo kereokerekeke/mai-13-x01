@@ -1,0 +1,43 @@
+
+writeln " ************************************************** ";
+writeln " *        Моделирование алгоритма сложения        * ";
+writeln " ************************************************** ";
+
+reg RA[9],RB[9],R1[9],RC[9];
+REG INPA[8],INPB[8];
+
+start:
+
+   read "A=",INPA;
+   read "B=",INPB;
+
+   RA:=INPA; RA[8..8]:=INPA[7..7];
+   RB:=INPB; RB[8..8]:=INPB[7..7];
+
+   writeln "RA=",$B9 RA,"=",$D3 RA;
+   writeln "RB=",$B9 RB,"=",$D3 RB;
+   writeln;
+
+   writeln " Сложение (X+Y): ";
+   R1:=RB;
+   WRITELN "R1=",$B9 R1,"=",$D3 R1;
+   RC:=RA+R1;
+
+   WRITELN "RC=",$B9 RC,"=",$D3 RC;
+   WRITELN;
+{ Проверка на переполнение }
+   IF RC[8..8]=RC[7..7] THEN GOTO MET3;
+   WRITELN " Переполнение разрядной сетки ";
+   WRITELN " ( результат по модулю > 127 )";
+   GOTO MET4;
+
+MET3:
+
+
+   WRITE " Результат Z=",$B8 RC,"=",$D3 RC;
+   WRITELN;
+MET4:
+   WRITELN " *************** конец программы *********************** ";
+END;
+
+

@@ -1,0 +1,110 @@
+{ лндекхпнбюмхе пюанрш яекейрнпмнцн йюмюкю }
+VAR W7,WB,WF,WI,WJ,WK,WN,WR,WU;
+REG SB[2],RAKK[24],RAP[24],RCHP[32],BR[32],RDK[32],RDU[8];
+REG W1[5],ADDR[24];
+MEM OP[1024][8],PU[16][8];
+STRUCT RKK2[32] DLM[16],PRZ[16];
+STRUCT RKK1[32] ADR[24],KOP[8];
+ GOSUB ZAGR; 
+END;
+
+{ ********* ондопнцпюллш ************************* }
+{ * оо налемю лефдс йюмюкнл х бс * }
+K_U_K:
+ WU:=24-SB*8;
+ IF RKK1.KOP=1 THEN RDK[WU..(WU+7)]:=RDU;
+ IF RKK1.KOP=2 THEN RDU:=RDK[WU..(WU+7)];
+RETURN;
+{ * оо пюяоEвюрйх пецхярпнб йюмюкю * }
+W_REG:
+ WRITELN "        RKK         яв.аюир     пдй     пдс   PAKK ";
+ WRITE $H2 RKK1.KOP," ",$H6 RKK1.ADR," ";
+ WRITE $H4 RKK2.PRZ," ",$H4 RKK2.DLM,"    ";
+ WRITE $H1 SB,"    ",$H2 RDK[24..31]," ";
+ WRITE $H2 RDK[16..23]," ",$H2 RDK[8..15]," ";
+ WRITELN $H2 RDK[0..7],"  ",$H2 RDU,"  ",$H6 RAKK;
+RETURN;
+{ * оо оепедювх дюммшу хг йюмюкю б оюлърэ * }
+K_OP:
+ {RAP-д/а пюмее нопедекемн}
+ GOSUB OUT_OP;
+ W1:=(NOT (SB-1))*8;
+ RCHP[W1..31]:=BR[W1..31];
+ GOSUB IN_OP;
+RETURN; 
+{ * оо оепегюохях хг пво б ъвеийс но * }
+IN_OP:
+ FOR WI:=0 TO 3;
+ WU:=24-WI*8;
+ OP[RAP+WI]:=RCHP[WU..(WU+7)];
+ NEXT;
+RETURN;
+{ * оо пюяоевюрйх яндепфхлнцн оюлърх * }
+W_OP:
+ WRITELN " яндепфхлне ъвеей но:";
+ FOR WK:=0 TO 1;
+ FOR WI:=0 TO 1;
+ FOR WJ:=0 TO 3;
+ WU:=OP[ADDR+3+WK*8]+WI*4+WJ;
+ WRITE $H6 WU," ",$H2 OP[WU]," * ";
+ NEXT;
+ WRITELN;
+ NEXT;NEXT; 
+RETURN;
+{ * оо времхъ хг оюлърх * }
+OUT_OP:
+ RAP[0..1]:=0;
+ FOR WI:=0 TO 3;
+ WU:=24-WI*8;
+ RCHP[WU..(WU+7)]:=OP[RAP+WI];
+ NEXT;
+RETURN;
+{ * оо гюцпсгйх пдс * }
+Z_RDU:
+ RDU:=PU[WR]; WR:=WR+1;
+RETURN;
+{ **** гюдюмхе хяу.дюммшу **** }
+{ ме дкъ хгсвемхъ !!! }
+ZAGR:
+ READ " ббедхре мнлеп бюпхюмрю ",WN;
+ ADDR:=200+WN*16;
+ WR:=0; W7:=WN*7; WF:=0;
+ OP[ADDR]:=2; OP[ADDR+8]:=2;
+ IF WN[0..0]=1 THEN OP[ADDR]:=1;
+ IF WN[0..0]=0 THEN OP[ADDR+8]:=WN[1..1];
+ OP[ADDR+7]:=7-W7[0..1]; OP[ADDR+15]:=2+W7[0..1];
+ IF OP[ADDR+8]=0 THEN OP[ADDR+4]:=160;
+ IF OP[ADDR+8]<>0 THEN OP[ADDR+4]:=96;
+ OP[ADDR+12]:=32;
+ OP[(ADDR+3),2..4]:=W7[0..2]; OP[(ADDR+3),5..6]:=WN[2..3];
+ OP[ADDR+11]:=OP[ADDR+3]+24+4*WN[0..1];
+ FOR WI:=0 TO 1;
+ WJ:=ADDR+8*WI;
+ IF OP[WJ]=1 THEN WF:=WF+OP[WJ+7];
+ IF OP[WJ]<>1 THEN GOSUB Z_OP;
+ NEXT;
+ WRITELN "бюпхюмр мнлеп ",$D3 WN;
+ WRITELN "юдпея оепбни йюм. йнлюмдш ",$H6 ADDR;
+ WRITELN "йюмюкэмюъ опнцпюллю: ";
+ FOR WI:=0 TO 1;
+ WRITE "  ",$H2 OP[ADDR+WI*8]," ",$H2 OP[ADDR+1+WI*8];
+ WRITE $H2 OP[ADDR+2+WI*8],$H2 OP[ADDR+3+WI*8]," "; 
+ WRITE $H2 OP[ADDR+4+WI*8],$H2 OP[ADDR+5+WI*8]," ";
+ WRITELN $H2 OP[ADDR+6+WI*8],$H2 OP[ADDR+7+WI*8];
+ NEXT;
+ GOSUB W_OP; 
+ IF WF=0 THEN GOTO WM1;
+ WRITELN "вхякю, явхршбюелше я бс:";
+ FOR WI:=0 TO (WF-1);
+ PU[WI]:=3+WI*WN*17;
+ WRITE " ",$H2 PU[WI];
+ NEXT;
+WM1:
+ WRITELN;
+ WRITELN "************************************************";
+RETURN;
+Z_OP:
+ FOR WK:=0 TO 7;
+ OP[OP[WJ+3]+WK]:=5+WK*WN*13+WJ;
+ NEXT;
+RETURN;
