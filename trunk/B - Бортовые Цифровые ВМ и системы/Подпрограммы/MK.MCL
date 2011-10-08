@@ -1,0 +1,208 @@
+{ рнкйюкхм  ю.д. Цp.03-518  1994Ц. }
+{ лндекхпнбюмхе пюанрш лскэрхокейямнцн йюмюкю }
+VAR I,WI,WJ,WK,WL,WN,WU,WX,WY;
+REG SB[2],RAKK[24],RAP[24],RCHP[32],BR[32],RDK[32],RDU[8],RVU[8],W1[5];
+MEM OP[1024][8],PU1[6][8],PU3[6][8],ZAPR[9][8];
+STRUCT RKK2[32] DLM[16],PRZ[16];
+STRUCT RKK1[32] ADR[24],KOP[8];
+ GOSUB ZAGR2; 
+ FOR I:=1 TO 8;
+ RVU:=ZAPR[I];
+ WRITELN "мнлеп наяксфхбюелнцн гюопняю ",$D2 I;
+ WRITELN "мнлеп наяксфхбюелнцн сярпниярбю ",$D2 RVU;
+{  ...  }
+ NEXT; 
+ END;
+
+{ ********* ондопнцпюллш ************************* }
+{ * оо налемю лефдс йюмюкнл х бс * }
+K_U_K:
+ WU:=24-SB*8;
+ IF RKK1.KOP=1 THEN RDK[WU..(WU+7)]:=RDU;
+ IF RKK1.KOP=2 THEN RDU:=RDK[WU..(WU+7)];
+RETURN;
+{ * оо пюяоевюрйх яндепфхлнцн ондйюмюкнб х пдс * }
+W_PK:
+ WRITELN " пдс=",$H2 RDU;
+ WRITELN " яндепфхлне ондйюмюкнб: ";
+ WRITELN "         пйй              пдй       яа    пюйй ";
+ FOR WI:=0 TO 2;
+ FOR WJ:=0 TO 15;
+ WRITE $H2 OP[960+16*WI+WJ];
+ IF (WJ=0)OR(WJ=3)OR(WJ=5)OR(WJ=8)OR(WJ=9)OR(WJ=10) THEN WRITE " ";
+ IF (WJ=7)OR(WJ=11)OR(WJ=12)OR(WJ=15) THEN WRITE " * ";
+ NEXT; WRITELN; NEXT;
+ WRITELN "*************************************************";
+RETURN; 
+{ * оо оепедювх дюммшу хг йюмюкю б оюлърэ * }
+K_OP:
+ {RAP-д/а пюмее нопедекемн}
+ GOSUB OUT_OP;
+ W1:=(NOT (SB-1))*8;
+ RCHP[W1..31]:=BR[W1..31];
+ GOSUB IN_OP;
+RETURN;
+{ * оо оепегюохях пво б ъвеийх но * }
+IN_OP:
+ FOR WI:=0 TO 3;
+ WU:=24-WI*8;
+ OP[RAP+WI]:=RCHP[WU..(WU+7)];
+ NEXT;
+ RETURN;
+{ * оо пюяоевюрйх яндепфхлнцн оюлърх * }
+W_OP:
+ WRITELN " яндепфхлне ъвеей но:";
+ WX:=0;
+ FOR WI:=0 TO 4;
+ WX:=WX+WI*20;
+ FOR WY:=0 TO 1;
+ FOR WJ:=0 TO 3;
+ WU:=16+WX+WY*4+WJ; 
+ WRITE $H6 WU," ",$H2 OP[WU]," * ";
+ NEXT;
+ WRITELN;  
+ NEXT;NEXT; 
+RETURN;
+{ * оо времхъ хг оюлърх * }
+OUT_OP:
+ RAP[0..1]:=0;  
+ FOR WI:=0 TO 3;
+ WU:=24-WI*8;
+ RCHP[WU..(WU+7)]:=OP[RAP+WI];
+ NEXT;
+RETURN;
+{ * оо гюцпсгйх пецхярпнб йюмюкю хг ондйюмюкю * }
+ACT:
+ RAP:=960+(RVU-1)*16;
+ GOSUB OUT_OP;
+ RKK1:=RCHP;
+ RAP:=RAP+4;
+ GOSUB OUT_OP;
+ RKK2:=RCHP;
+ RAP:=RAP+4;
+ GOSUB OUT_OP;
+ RDK:=RCHP;
+ RAP:=RAP+4;
+ GOSUB OUT_OP;
+ RAKK:=RCHP[0..23];
+ SB:=RCHP[24..25];
+RETURN;
+{ * оо гюохях пец. йюмюкю б ондйюмюк * }
+PAS:
+ RAP:=960+(RVU-1)*16;
+ RCHP:=RKK1;
+ GOSUB IN_OP;
+ RAP:=RAP+4;
+ RCHP:=RKK2;
+ GOSUB IN_OP;
+ RAP:=RAP+4;
+ RCHP:=RDK;
+ GOSUB IN_OP;
+ RAP:=RAP+4;
+ RCHP[24..31]:=SB; RCHP[0..23]:=RAKK;
+ GOSUB IN_OP;
+RETURN;
+{ * оо гюцпсгйх пдс * }
+Z_RDU:
+ IF ZAPR[I]=3 THEN GOTO LBL3;
+ RDU:=PU1[WK]; WK:=WK+1;
+RETURN;
+ LBL3:
+ RDU:=PU3[WL]; WL:=WL+1;
+RETURN; 
+{ ****** гюдюмхе хяу.дюммшу ****** }
+{ ме дкъ хгсвемхъ !!! }
+ZAGR2:
+ READ " ббедхре мнлеп бюпхюмрю ",WN;
+ WRITELN "**************************************************";
+ WRITELN "хяундмше дюммше:";
+ WRITELN "бюпхюмр мнлеп ",$D3 WN;
+ RAP:=800; RCHP:=0H0200010; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H60000007; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H01000024; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000006; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H0200004C; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0HA0000002; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H00000088; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000004; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H010000D8; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000005; GOSUB IN_OP; 
+ WRITELN "йюмюкэмше опнцпюллш: ";
+ WRITELN "  дкъ 1-ЦН бс, б оюлърх упюмхряъ я юдпеяю 000320:";
+ WRITELN "    02 000010 6000 0007 ";
+ WRITELN "    01 000024 2000 0006 ";
+ WRITELN "  дкъ 2-ЦН бс, б оюлърх упюмхряъ я юдпеяю 000330:";
+ WRITELN "    02 00004C A000 0002 ";
+ WRITELN "    00 000088 2000 0004 ";
+ WRITELN "  дкъ 3-ЦН бс, б оюлърх упюмхряъ я юдпеяю 000340: ";
+ WRITELN "    01 0000D8 2000 0005 ";
+{ гюцпсгйю ондйюмюкнб }
+ RAP:=960; RCHP:=0H02000012; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H60000005; GOSUB IN_OP;
+ RAP:=RAP+8; RCHP:=0H02000328; GOSUB IN_OP;
+ RAP:=976; RCHP:=0H0200004C; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0HA0000002; GOSUB IN_OP;
+ RAP:=RAP+8; RCHP:=0H00000338; GOSUB IN_OP;
+ RAP:=992; RCHP:=0H010000D9; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000004; GOSUB IN_OP;
+ RAP:=RAP+8; RCHP:=0H01000348; GOSUB IN_OP;
+ IF WN<6 THEN GOTO LBL4;
+ OP[963]:=19; OP[967]:=4; OP[972]:=3; OP[979]:=137;
+ OP[980]:=32; OP[983]:=3; OP[988]:=1; OP[991]:=64;
+ OP[995]:=218; OP[999]:=3; OP[1004]:=2;
+ IF WN>10 THEN GOTO LBL4;
+ OP[960]:=1; OP[963]:=39; OP[964]:=32; OP[967]:=3;
+ OP[975]:=48; OP[979]:=77; OP[980]:=160; OP[983]:=1;
+ OP[991]:=56; OP[995]:=216; OP[999]:=5; OP[1004]:=0;
+LBL4:
+{ гюцпсгйю оюлърх дюммшлх }
+ FOR WI:=0 TO 2;
+ FOR WJ:=0 TO 7;
+ OP[16+WI*60+WJ]:=5+WJ*WN*93+WI*17+WJ+WN;
+ OP[36+WI*90+WJ]:=0;
+ NEXT; NEXT;
+ GOSUB W_OP;
+{ мювюкэмше гмювемхъ пдй }
+ RAP:=OP[963]; GOSUB OUT_OP; RAP:=968; GOSUB IN_OP;
+ RAP:=OP[979]; GOSUB OUT_OP; RAP:=984; GOSUB IN_OP; 
+{ тнплхпнбюмхе яохяйю гюопнянб }
+ RAP:=1008; RCHP:=0H6D9B6D9B;
+ GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H799E799E;
+ GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H6DE76DE7;
+ GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H79B779B7;
+ GOSUB IN_OP;
+ RAP:=1008+WN[0..1]*4; 
+ GOSUB OUT_OP;
+ WJ:=31-WN[2..3]*4;
+ WRITE "онякеднбюрекэмнярэ гюопнянб : ";
+ FOR WI:=1 TO 8;
+ ZAPR[WI]:=RCHP[(WJ-1)..WJ];
+ WJ:=WJ-2;
+ WRITE $D2 ZAPR[WI];
+ NEXT;
+ WRITELN;
+{ вхякю дкъ ббндю я бс }
+ WK:=0; WL:=0;
+ FOR WI:=0 TO 5;
+ PU1[WI]:=3+WI*WN*17;
+ PU3[WI]:=7+WI*WN*19;
+ IF (OP[963]-WI)<=36 THEN GOTO LBL1;
+ OP[968+WK]:=PU1[WI]; WK:=WK+1;
+LBL1:
+ IF (OP[995]-WI)<=216 THEN GOTO LBL2;
+ OP[1000+WL]:=PU3[WI]; WL:=WL+1;
+LBL2:
+ NEXT;
+ WRITE " вхякю, явхршбюелше я 1-ЦН бс: ";
+ FOR WI:=WK TO 5;
+ WRITE $H2 PU1[WI]," ";
+ NEXT; WRITELN;
+ WRITE " вхякю, явхршбюелше я 3-ЦН бс: ";
+ FOR WI:=WL TO 4;
+ WRITE $H2 PU3[WI]," ";
+ NEXT; WRITELN;
+ GOSUB W_PK;
+RETURN;

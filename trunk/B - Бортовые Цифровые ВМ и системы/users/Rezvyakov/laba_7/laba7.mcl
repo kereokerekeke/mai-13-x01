@@ -1,0 +1,282 @@
+{ Резвяков Д., Лапшин А., гp.13-601  2011г. }
+{ МОДЕЛИРОВАНИЕ РАБОТЫ МУЛЬТИПЛЕКСНОГО КАНАЛА }
+VAR I,WI,WJ,WK,WL,WN,WU,WX,WY;
+REG SB[2],RAKK[24],RAP[24],RCHP[32],BR[32],RDK[32],RDU[8],RVU[8],W1[5];
+MEM OP[1024][8],PU1[6][8],PU3[6][8],ZAPR[9][8];
+STRUCT RKK2[32] DLM[16],PRZ[16];
+STRUCT RKK1[32] ADR[24],KOP[8];
+ GOSUB ZAGR2; 
+ FOR I:=1 TO 8;
+ RVU:=ZAPR[I];
+ WRITELN "НОМЕР ОБСЛУЖИВАЕМОГО ЗАПРОСА ",$D2 I;
+ WRITELN "НОМЕР ОБСЛУЖИВАЕМОГО УСТРОЙСТВА ",$D2 RVU;
+
+{  Начало  }
+
+  GOSUB ACT; { Загрузка регистров канала }
+  IF RKK1.KOP=1 THEN GOTO P_READ;
+
+P_WRITE:
+  GOSUB W_PK; { Печать содержимого подканалов }
+
+  GOSUB K_U_K; { Передача 1 байта }
+  SB:=SB+1;
+  RKK2.DLM:=RKK2.DLM-1;
+  RKK1.ADR:=RKK1.ADR+1;
+  IF RKK2.DLM=0 THEN GOTO P_NEXT_ARRAY;
+  IF SB<>0 THEN GOTO P_END;
+
+P_WRITE_FROM_OP: { Вход в точку 2 }
+  RAP:=RKK1.ADR;
+  GOSUB OUT_OP; { Чтение РЧП из памяти по адресу РАП }
+  RDK:=RCHP; { Помещение считанных данных из РЧП в РДК }
+  GOTO P_END;
+
+P_READ:
+  GOSUB W_OP; { Печать состояния памяти }
+  GOSUB W_PK; { Печать содержимого подканалов }
+
+  GOSUB Z_RDU; { Загрузка РДУ }
+  GOSUB K_U_K; { Передача 1 байта }
+  SB:=SB+1;
+  RKK2.DLM:=RKK2.DLM-1;
+  IF SB<>0 AND RKK2.DLM<>0 THEN GOTO P_READ_INC_ADR;
+  RAP:=RKK1.ADR;
+  BR:=RDK; { Подготовка РДК к записи в память }
+  GOSUB K_OP; { Запись считанной части BR в память по адресу РАП }
+
+P_READ_INC_ADR:
+  RKK1.ADR:=RKK1.ADR+1;
+  IF RKK2.DLM<>0 THEN GOTO P_END;
+
+P_NEXT_ARRAY: { Вход в точку 3 }
+{ Признаки (биты 14..15, из пособия, стр.97):
+  00 - конец канальной команды, 01 - цепочка команд, 10 - цепочка данных. }
+  IF (RKK2.PRZ AND 0hC000)=0 THEN GOTO P_CLEAR; { Если конец программы }
+  RAP:=RAKK; { Указание адреса, по которому считывается память }
+  GOSUB OUT_OP; { Чтение памяти по указанному адресу }
+  IF (RKK2.PRZ AND 0hC000)=0h8000 THEN RKK1[0..23]:=RCHP[0..23];
+  IF (RKK2.PRZ AND 0hC000)=0h4000 THEN RKK1:=RCHP;
+  RAKK:=RAKK+4;
+
+  RAP:=RAKK; { Указание адреса, по которому считывается память }
+  GOSUB OUT_OP; { Чтение памяти по указанному адресу }
+  RKK2:=RCHP;
+  RAKK:=RAKK+4;
+  SB:=RKK1[0..1];
+
+  IF RKK1.KOP=2 THEN GOTO P_WRITE_FROM_OP;
+  GOTO P_END;
+
+{end P_NEXT_ARRAY}
+
+P_CLEAR:
+  RKK1:=0;
+  RKK2:=0;
+  RDK:=0;
+  SB:=0;
+  RAKK:=0;
+{end P_CLEAR}
+
+P_END: { Вход в точку 1 }
+
+  GOSUB PAS; { Сохранение регистров канала }
+
+{  Конец  }
+
+ NEXT; 
+ END;
+
+
+{ ********* ПОДПРОГРАММЫ ************************* }
+{ * ПП ОБМЕНА МЕЖДУ КАНАЛОМ И ВУ * }
+K_U_K:
+ WU:=24-SB*8;
+ IF RKK1.KOP=1 THEN RDK[WU..(WU+7)]:=RDU;
+ IF RKK1.KOP=2 THEN RDU:=RDK[WU..(WU+7)];
+RETURN;
+{ * ПП РАСПЕЧАТКИ СОДЕРЖИМОГО ПОДКАНАЛОВ И РДУ * }
+W_PK:
+ WRITELN " РДУ=",$H2 RDU;
+ WRITELN " СОДЕРЖИМОЕ ПОДКАНАЛОВ: ";
+ WRITELN "         РКК              РДК       СБ    РАКК ";
+ FOR WI:=0 TO 2;
+ FOR WJ:=0 TO 15;
+ WRITE $H2 OP[960+16*WI+WJ];
+ IF (WJ=0)OR(WJ=3)OR(WJ=5)OR(WJ=8)OR(WJ=9)OR(WJ=10) THEN WRITE " ";
+ IF (WJ=7)OR(WJ=11)OR(WJ=12)OR(WJ=15) THEN WRITE " * ";
+ NEXT; WRITELN; NEXT;
+ WRITELN "*************************************************";
+RETURN; 
+{ * ПП ПЕРЕДАЧИ ДАННЫХ ИЗ КАНАЛА В ПАМЯТЬ * }
+K_OP:
+ {RAP-Д/Б РАНЕЕ ОПРЕДЕЛЕНО}
+ GOSUB OUT_OP;
+ W1:=(NOT (SB-1))*8;
+ RCHP[W1..31]:=BR[W1..31];
+ GOSUB IN_OP;
+RETURN;
+{ * ПП ПЕРЕЗАПИСИ РЧП В ЯЧЕЙКИ ОП * }
+IN_OP:
+ FOR WI:=0 TO 3;
+ WU:=24-WI*8;
+ OP[RAP+WI]:=RCHP[WU..(WU+7)];
+ NEXT;
+ RETURN;
+{ * ПП РАСПЕЧАТКИ СОДЕРЖИМОГО ПАМЯТИ * }
+W_OP:
+ WRITELN " СОДЕРЖИМОЕ ЯЧЕЕК ОП:";
+ WX:=0;
+ FOR WI:=0 TO 4;
+ WX:=WX+WI*20;
+ FOR WY:=0 TO 1;
+ FOR WJ:=0 TO 3;
+ WU:=16+WX+WY*4+WJ; 
+ WRITE $H6 WU," ",$H2 OP[WU]," * ";
+ NEXT;
+ WRITELN;  
+ NEXT;NEXT; 
+RETURN;
+{ * ПП ЧТЕНИЯ ИЗ ПАМЯТИ * }
+OUT_OP:
+ RAP[0..1]:=0;  
+ FOR WI:=0 TO 3;
+ WU:=24-WI*8;
+ RCHP[WU..(WU+7)]:=OP[RAP+WI];
+ NEXT;
+RETURN;
+{ * ПП ЗАГРУЗКИ РЕГИСТРОВ КАНАЛА ИЗ ПОДКАНАЛА * }
+ACT:
+ RAP:=960+(RVU-1)*16;
+ GOSUB OUT_OP;
+ RKK1:=RCHP;
+ RAP:=RAP+4;
+ GOSUB OUT_OP;
+ RKK2:=RCHP;
+ RAP:=RAP+4;
+ GOSUB OUT_OP;
+ RDK:=RCHP;
+ RAP:=RAP+4;
+ GOSUB OUT_OP;
+ RAKK:=RCHP[0..23];
+ SB:=RCHP[24..25];
+RETURN;
+{ * ПП ЗАПИСИ РЕГ. КАНАЛА В ПОДКАНАЛ * }
+PAS:
+ RAP:=960+(RVU-1)*16;
+ RCHP:=RKK1;
+ GOSUB IN_OP;
+ RAP:=RAP+4;
+ RCHP:=RKK2;
+ GOSUB IN_OP;
+ RAP:=RAP+4;
+ RCHP:=RDK;
+ GOSUB IN_OP;
+ RAP:=RAP+4;
+ RCHP[24..31]:=SB; RCHP[0..23]:=RAKK;
+ GOSUB IN_OP;
+RETURN;
+{ * ПП ЗАГРУЗКИ РДУ * }
+Z_RDU:
+ IF ZAPR[I]=3 THEN GOTO LBL3;
+ RDU:=PU1[WK]; WK:=WK+1;
+RETURN;
+ LBL3:
+ RDU:=PU3[WL]; WL:=WL+1;
+RETURN; 
+{ ****** ЗАДАНИЕ ИСХ.ДАННЫХ ****** }
+{ НЕ ДЛЯ ИЗУЧЕНИЯ !!! }
+ZAGR2:
+ READ " ВВЕДИТЕ НОМЕР ВАРИАНТА ",WN;
+ WRITELN "**************************************************";
+ WRITELN "ИСХОДНЫЕ ДАННЫЕ:";
+ WRITELN "ВАРИАНТ НОМЕР ",$D3 WN;
+ RAP:=800; RCHP:=0H0200010; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H60000007; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H01000024; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000006; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H0200004C; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0HA0000002; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H00000088; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000004; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H010000D8; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000005; GOSUB IN_OP; 
+ WRITELN "КАНАЛЬНЫЕ ПРОГРАММЫ: ";
+ WRITELN "  ДЛЯ 1-го ВУ, В ПАМЯТИ ХРАНИТСЯ С АДРЕСА 000320:";
+ WRITELN "    02 000010 6000 0007 ";
+ WRITELN "    01 000024 2000 0006 ";
+ WRITELN "  ДЛЯ 2-го ВУ, В ПАМЯТИ ХРАНИТСЯ С АДРЕСА 000330:";
+ WRITELN "    02 00004C A000 0002 ";
+ WRITELN "    00 000088 2000 0004 ";
+ WRITELN "  ДЛЯ 3-го ВУ, В ПАМЯТИ ХРАНИТСЯ С АДРЕСА 000340: ";
+ WRITELN "    01 0000D8 2000 0005 ";
+{ ЗАГРУЗКА ПОДКАНАЛОВ }
+ RAP:=960; RCHP:=0H02000012; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H60000005; GOSUB IN_OP;
+ RAP:=RAP+8; RCHP:=0H02000328; GOSUB IN_OP;
+ RAP:=976; RCHP:=0H0200004C; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0HA0000002; GOSUB IN_OP;
+ RAP:=RAP+8; RCHP:=0H00000338; GOSUB IN_OP;
+ RAP:=992; RCHP:=0H010000D9; GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H20000004; GOSUB IN_OP;
+ RAP:=RAP+8; RCHP:=0H01000348; GOSUB IN_OP;
+ IF WN<6 THEN GOTO LBL4;
+ OP[963]:=19; OP[967]:=4; OP[972]:=3; OP[979]:=137;
+ OP[980]:=32; OP[983]:=3; OP[988]:=1; OP[991]:=64;
+ OP[995]:=218; OP[999]:=3; OP[1004]:=2;
+ IF WN>10 THEN GOTO LBL4;
+ OP[960]:=1; OP[963]:=39; OP[964]:=32; OP[967]:=3;
+ OP[975]:=48; OP[979]:=77; OP[980]:=160; OP[983]:=1;
+ OP[991]:=56; OP[995]:=216; OP[999]:=5; OP[1004]:=0;
+LBL4:
+{ ЗАГРУЗКА ПАМЯТИ ДАННЫМИ }
+ FOR WI:=0 TO 2;
+ FOR WJ:=0 TO 7;
+ OP[16+WI*60+WJ]:=5+WJ*WN*93+WI*17+WJ+WN;
+ OP[36+WI*90+WJ]:=0;
+ NEXT; NEXT;
+ GOSUB W_OP;
+{ НАЧАЛЬНЫЕ ЗНАЧЕНИЯ РДК }
+ RAP:=OP[963]; GOSUB OUT_OP; RAP:=968; GOSUB IN_OP;
+ RAP:=OP[979]; GOSUB OUT_OP; RAP:=984; GOSUB IN_OP; 
+{ ФОРМИРОВАНИЕ СПИСКА ЗАПРОСОВ }
+ RAP:=1008; RCHP:=0H6D9B6D9B;
+ GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H799E799E;
+ GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H6DE76DE7;
+ GOSUB IN_OP;
+ RAP:=RAP+4; RCHP:=0H79B779B7;
+ GOSUB IN_OP;
+ RAP:=1008+WN[0..1]*4; 
+ GOSUB OUT_OP;
+ WJ:=31-WN[2..3]*4;
+ WRITE "ПОСЛЕДОВАТЕЛЬНОСТЬ ЗАПРОСОВ : ";
+ FOR WI:=1 TO 8;
+ ZAPR[WI]:=RCHP[(WJ-1)..WJ];
+ WJ:=WJ-2;
+ WRITE $D2 ZAPR[WI];
+ NEXT;
+ WRITELN;
+{ ЧИСЛА ДЛЯ ВВОДА С ВУ }
+ WK:=0; WL:=0;
+ FOR WI:=0 TO 5;
+ PU1[WI]:=3+WI*WN*17;
+ PU3[WI]:=7+WI*WN*19;
+ IF (OP[963]-WI)<=36 THEN GOTO LBL1;
+ OP[968+WK]:=PU1[WI]; WK:=WK+1;
+LBL1:
+ IF (OP[995]-WI)<=216 THEN GOTO LBL2;
+ OP[1000+WL]:=PU3[WI]; WL:=WL+1;
+LBL2:
+ NEXT;
+ WRITE " ЧИСЛА, СЧИТЫВАЕМЫЕ С 1-го ВУ: ";
+ FOR WI:=WK TO 5;
+ WRITE $H2 PU1[WI]," ";
+ NEXT; WRITELN;
+ WRITE " ЧИСЛА, СЧИТЫВАЕМЫЕ С 3-го ВУ: ";
+ FOR WI:=WL TO 4;
+ WRITE $H2 PU3[WI]," ";
+ NEXT; WRITELN;
+ GOSUB W_PK;
+RETURN;

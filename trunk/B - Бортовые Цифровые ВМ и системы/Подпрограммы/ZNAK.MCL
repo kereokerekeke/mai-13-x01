@@ -1,0 +1,16 @@
+  {  Программа для печати числа со знаком  }
+
+REG SUM[7];
+WRITELN " Введите число (не более 63)";
+READ "SUM=",SUM;
+GOSUB SIGN;
+END;
+
+SIGN:
+  WRITE "SUM=";
+  IF SUM[6..6]<>1 THEN GOTO M1;
+  SUM:=COM SUM;
+  WRITE "-";
+M1:
+  WRITELN $D3 SUM;
+  RETURN;
