@@ -1,7 +1,7 @@
 { Резвяков Д., Лапшин А., гp.13-601  2011г. }
 { МОДЕЛИРОВАНИЕ РАБОТЫ МУЛЬТИПЛЕКСНОГО КАНАЛА }
 VAR I,WI,WJ,WK,WL,WN,WU,WX,WY;
-REG SB[2],RAKK[24],RAP[24],RCHP[32],RDK[32],RDU[8],RVU[8],W1[5];
+REG SB[2],RAKK[24],RAP[24],RCHP[32],BR[32],RDK[32],RDU[8],RVU[8],W1[5];
 MEM OP[1024][8],PU1[6][8],PU3[6][8],ZAPR[9][8];
 STRUCT RKK2[32] DLM[16],PRZ[16];
 STRUCT RKK1[32] ADR[24],KOP[8];
@@ -37,7 +37,8 @@ P_READ:
   RKK2.DLM:=RKK2.DLM-1;
   IF SB<>0 AND RKK2.DLM<>0 THEN GOTO P_READ_INC_ADR;
   RAP:=RKK1.ADR;
-  GOSUB K_OP; { Запись считанной части RDK в память по адресу РАП }
+  BR:=RDK; { Подготовка РДК к записи в память }
+  GOSUB K_OP; { Запись считанной части BR в память по адресу РАП }
 
   GOSUB W_OP; { Печать состояния памяти после её изменения }
 
@@ -111,7 +112,7 @@ K_OP:
  {RAP-Д/Б РАНЕЕ ОПРЕДЕЛЕНО}
  GOSUB OUT_OP;
  W1:=(NOT (SB-1))*8;
- RCHP[W1..31]:=RDK[W1..31];
+ RCHP[W1..31]:=BR[W1..31];
  GOSUB IN_OP;
 RETURN;
 { * ПП ПЕРЕЗАПИСИ РЧП В ЯЧЕЙКИ ОП * }
