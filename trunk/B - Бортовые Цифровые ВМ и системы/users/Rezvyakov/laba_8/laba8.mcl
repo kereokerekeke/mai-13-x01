@@ -1,0 +1,389 @@
+
+writeln " *******************************************************************";
+writeln " *        Модель секторной КЕШ памяти со сквозной записью          *";
+writeln " *******************************************************************";
+
+{**************************** Описание типов *********************************}
+
+    { переменные используемые в программе моделирования }
+var storeAddress,    { временное хранение адреса }
+    iOperation,      { номер текущей операции с памятью }
+    operationCode,   { код текущей операции }
+    data,            { данные }
+    replaceSegment,  { номер замещаемого сегмента на данном шаге }
+    numberOfSegment, { номер сектора, содержащего необходимый сегмент }
+
+    { типы используемые п/п }
+    choice,  { номер варианта }
+    i, j;    { вспомогательные переменные }
+
+mem op[32][8];         { оперативная память: 32 слова по 8 бит }
+mem bp[16][10];        { буферная память: 16 слов по 10 бит }
+mem opAddresses[3][5]; { память исполнительных адресов, содержит исполнительные адреса }
+mem inputs[3][8];      { числа для записи, содержит числа записываемые в память }
+mem operationCodes[3][1];  { коды операций для каждого шага: 0-запись, 1-чтение }
+mem segmentsInBP[2][2];    { регистры номеров присутствующих сегментов }
+mem replaceSegments[3][2]; { номерa сегментoв вытесняемых из БП при замещении }
+
+struct opAddress[5] { адрес ячейки ОП 32 слова }
+       block[3],    { номер блока 8 шт. }
+       segment [2]; { номер сегмента 4 шт.}
+
+struct bpAddress[4] { адрес ячейки БП 16 слов }
+       block[3],    { номер блока 8 шт. }
+       sector[1];   { номер сектора 2 шт. }
+
+struct bufferRegister[9] { структура слова буферной памяти, в эту структуру
+считывается слово БП при любой обработке, что позволяет различать в
+нём биты присутствия, изменения и собственно данные }
+       data[8],     { данные }
+       exists[1];   { бит наличия }
+
+    { переменные используемые в подпрограммах }
+struct subiadr[5]    block[3], segment[2];
+struct subbpadr[4]   block[3], sector[1];
+struct subbuf_reg[9] data[8],  exists[1];
+
+{**************************** Начало программы *******************************}
+
+choice:=7;
+gosub variant;     { задание начальных значений всех переменных }
+
+for iOperation := 0 to 2;
+  writeln;
+  writeln " ********************** Операция №", $d1 iOperation + 1,
+    " ********************************";
+
+    { Считывание данных из массивов в переменные для текущей операции }
+  replaceSegment := replaceSegments[iOperation];
+  operationCode  := operationCodes [iOperation];
+  opAddress      := opAddresses    [iOperation];
+  data           := inputs         [iOperation];
+  
+  if operationCode = 0 then write "Запись значения ", $d3 data, " в ОП по адресу ";
+  if operationCode = 1 then write "Чтение значения из ОП по адресу ";
+  writeln $d2 opAddress, " (", $h1 opAddress.segment, ":", $h1 opAddress.block, ")";
+
+    { Поиск наличия сегмента в БП }
+  numberOfSegment := 255;
+  if segmentsInBP[0] = opAddress.segment then numberOfSegment := 0;
+  if segmentsInBP[1] = opAddress.segment then numberOfSegment := 1;
+  if numberOfSegment <> 255 then goto P_GetBlock; { если сегмент присутствует в БП... }
+
+    { Если сегмент отсутствует в БП }
+  writeln "Сегмент ", $d2 opAddress.segment, " отсутствует в буферной памяти";
+  writeln "Вытеснение сегмента ", $d2 replaceSegment;
+  if segmentsInBP[0]=replaceSegment then numberOfSegment:=0;
+  if segmentsInBP[1]=replaceSegment then numberOfSegment:=1;
+
+    { Вытеснение сегмента из БП }
+  bpAddress.sector := numberOfSegment;
+  for i := 0 to 7;
+    bpAddress.block := i;
+    bufferRegister := bp[bpAddress];
+    bufferRegister.exists := 0;
+    bp[bpAddress] := bufferRegister;
+  next;
+  segmentsInBP[numberOfSegment] := opAddress.segment;
+
+P_GetBlock:
+  bpAddress.block := opAddress.block; { вычисление адреса блока БП по адресу ОП }
+  bpAddress.sector := numberOfSegment;
+  bufferRegister := bp[bpAddress]; { чтение блока из БП в буферный регистр }
+  if bufferRegister.exists = 1 then goto P_ProcessOperation; { блок присутствует }
+
+    { Если блок отсутствует в БП }
+  writeln "Блок ", $d2 opAddress.block, " сегмента ", $d2 opAddress.segment,
+    " отсутствует в буферной памяти";
+  bufferRegister.data:=op[opAddress];
+  bufferRegister.exists:=1;
+  writeln "Получение блока из оперативной памяти (данные: ",$d3 bufferRegister.data,")";
+
+P_ProcessOperation: { выполнение операции по коду }
+  if operationCode = 1 then goto P_ProcessRead;
+
+P_ProcessWrite:
+  bufferRegister.data := data;
+  op[opAddress] := data;
+  writeln "В БП и ОП записаны данные: ", $d3 data;
+  goto P_ProcessEnd;
+
+P_ProcessRead:
+  data := bufferRegister.data;
+  writeln "Из БП прочитаны данные: ", $d3 data;
+
+P_ProcessEnd:
+  bp[bpAddress] := bufferRegister; { запись из регистра в буферную память }
+  gosub print_bp;   { печать содержимого БП }
+  gosub print_op;   { печать содержимого ОП }
+{ pause; }
+next;
+end;
+
+{**************************** Конец программы ********************************}
+
+{****************************** Подпрограммы *********************************}
+
+{ p/p zadanie varianta ,ispol'zuet p/p first,second,third }
+
+variant:
+
+{ zadanie ishodnih dannih po variantam }
+if choice=0 then read "Введите номер варианта: ",choice;
+
+if choice<=5 then gosub first;
+if ((choice>5) and (choice<=10)) then gosub second;
+if choice>10 then gosub third;
+
+return; { variant }
+
+{ p/p pervii variant }
+
+first:
+
+{ prisvaivanie nacal'nih znacenii aceikam OP }
+
+for i:=0 to 31;
+    op[i]:=(choice+2)*2+i-2;
+next;
+
+{ prisvaivanie nacal'nih znacenii aceikam BP }
+
+for i:=0 to 15;
+   bufferRegister.data:=(choice+2)*2+i-2;
+   bufferRegister.ch_bit:=0;
+   bufferRegister.exists:=1;
+   bp[i]:=bufferRegister;
+next;
+
+for i:=2 to 5;
+   bufferRegister.data:=choice+i-2;
+   bufferRegister.ch_bit:=0;
+   bufferRegister.exists:=0;
+   bp[i]:=bufferRegister;
+next;
+
+{ naznacenie ispolnitel'nih adresov }
+
+opAddresses[0]:=4;
+opAddresses[1]:=29;
+opAddresses[2]:=15;
+
+{ zadanie cicel dla zapisi }
+
+for i:=0 to 2;
+   inputs[i]:=i+8;
+next;
+
+{ KOPi }
+
+operationCodes[0]:=0;
+operationCodes[1]:=1;
+operationCodes[2]:=0;
+
+{ nomera priutstvuysih segmentov }
+
+segmentsInBP[0]:=0;
+segmentsInBP[1]:=1;
+
+{ nomera zamesaemih segmentov }
+
+replaceSegments[0]:=0;
+replaceSegments[1]:=0;
+replaceSegments[2]:=0;
+
+gosub print_bp;   { pecat' soderjimogo BP }
+pause;
+gosub print_op;   { pecat' soderjimogo OP }
+gosub print; { pecat' zapisivaemih cisel i zamesaemih segmentov }
+pause;
+
+return; { first }
+
+{ p/p vtoroi variant }
+
+second:
+
+{ prisvaivanie nacal'nih znacenii aceikam OP }
+
+for i:=0 to 31;
+    op[i]:=(choice+2)*2+i-8;
+next;
+
+{ prisvaivanie nacal'nih znacenii aceikam BP }
+
+for i:=0 to 15;
+   bufferRegister.data:=(choice+2)*2+i;
+   bufferRegister.exists:=1;
+   bp[i]:=bufferRegister;
+next;
+
+for i:=0 to 3;
+   bufferRegister.data:=choice-4;
+   bufferRegister.exists:=0;
+   bp[i]:=bufferRegister;
+next;
+
+{ naznacenie icpolnitel'nih adresov }
+
+opAddresses[0]:=10;
+opAddresses[1]:=30;
+opAddresses[2]:=19;
+
+{ zadanie cicel dla zapisi }
+
+for i:=0 to 2;
+   inputs[i]:=i+12;
+next;
+
+{ KOPi }
+
+operationCodes[0]:=1;
+operationCodes[1]:=0;
+operationCodes[2]:=1;
+
+{ nomera prisutstvuysih segmentov }
+
+segmentsInBP[0]:=1;
+segmentsInBP[1]:=2;
+
+{ nomera zamesaemih segmentov }
+
+replaceSegments[0]:=0;
+replaceSegments[1]:=1;
+replaceSegments[2]:=0;
+
+gosub print_bp;   { pecat' soderjimogo BP }
+gosub print_op;   { pecat' soderjimogo OP }
+gosub print; { pecat' zapisivaemih cisel i zamesaemih segmentov }
+
+return; { second }
+
+{ p/p tretii variant }
+
+third:
+
+{ prisvaivanie nacal'nih znacenii aceikam OP }
+
+for i:=0 to 31;
+    op[i]:=(choice+2)/2+i+5;
+next;
+
+{ prisvaivanie nacal'nih znacenii aceikam BP }
+
+for i:=0 to 15;
+   bufferRegister.data:=(choice+2)/2+i+21;
+   bufferRegister.exists:=1;
+   bp[i]:=bufferRegister;
+next;
+
+for i:=4 to 7;
+   bufferRegister.data:=choice-7;
+   bufferRegister.exists:=0;
+   bp[i]:=bufferRegister;
+next;
+
+{ naznacenie ispolnitel'nih adresov }
+
+opAddresses[0]:=21;
+opAddresses[1]:=8;
+opAddresses[2]:=24;
+
+{ zadanie cisel dla zapisi }
+
+for i:=0 to 2;
+   inputs[i]:=i+23;
+next;
+
+{ KOPi }
+
+operationCodes[0]:=1;
+operationCodes[1]:=1;
+operationCodes[2]:=0;
+
+{ nomera prisutstvuysih segmentov }
+
+segmentsInBP[0]:=2;
+segmentsInBP[1]:=3;
+
+{ nomera zamesaemih segmentov }
+
+replaceSegments[0]:=0;
+replaceSegments[1]:=2;
+replaceSegments[2]:=0;
+
+gosub print_bp;   { pecat' soderjimogo BP }
+pause;
+gosub print_op;   { pecat' soderjimogo OP }
+gosub print; { pecat' zapisivaemih cisel i zamesaemih segmentov }
+pause;
+
+return; { third }
+
+{ p/p pecati soderjimogo bufernoi pamati }
+
+print_bp:
+   writeln;
+   writeln "Содержимое буферной памяти:";
+   writeln " ____________________________________";
+   writeln "|      |   Сектор 0   |   Сектор 1   |";
+   writeln "|_Блок_|_Прис._Данные_|_Прис._Данные_|";
+   for i:=0 to 7;
+      write "| ", $d2 i, "   ";
+      subbpadr.sector:=0;
+      subbpadr.block:=i;
+      subbuf_reg:=bp[subbpadr];
+      gosub print_br;
+      subbpadr.sector:=1;
+      subbuf_reg:=bp[subbpadr];
+      gosub print_br;
+      writeln "|";
+   next;
+   writeln "--------------------------------------";
+   writeln "Содержимое РНПС:";
+   writeln "  сектор 0: сегмент", $d2 segmentsInBP[0];
+   writeln "  сектор 1: сегмент", $d2 segmentsInBP[1];
+return; { print_bp }
+
+{ p/p pecati soderjimogo bufernogo registra }
+
+print_br:
+   write "|   ", $b1 subbuf_reg.exists;
+   write "   ", $d4 subbuf_reg.data, "   ";
+return; { print_br }
+
+{ p/p pecati soderjimogo operativnoi pamati }
+
+print_op:
+   writeln;
+   writeln "Содержимое оперативной памяти:";
+   writeln " _____________________________________________";
+   writeln "|___Блок_#__|___0___1___2___3___4___5___6___7_|";
+   for i:=0 to 3;
+      write "|Сегмент #",$d1 i," |";
+      subiadr.segment:=i;
+      for j:=0 to 7;
+         subiadr.block:=j;
+         write $d4 op[subiadr];
+      next;
+      writeln " |";
+   next;
+   writeln "-----------------------------------------------";
+
+return; { print_op }
+
+{ p/p pecati zapisivaemih cisel i zamesaemih segmentov }
+
+print:
+   writeln;
+   writeln " _____________________________________________";
+   writeln "| № обращ. | Операция | Числа для | № вытесн. |";
+   writeln "|__________|__________|___записи__|__сегмента_|";
+   for i := 0 to 2;
+      write "|     ", $d1 i , "    |";
+      if operationCodes[i] = 0 then write "  запись  |";
+      if operationCodes[i] = 1 then write "  чтение  |";
+      writeln $d7 inputs[i], "    |", $d6 replaceSegments[i], "     |";
+   next;
+   writeln "-----------------------------------------------";
+return; { print }
